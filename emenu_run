@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+mkdir -p ~/.cache/
+db="${HOME}/.cache/emenu.slowdb"
+sel=$(emenu_path "$db" list | dmenu "$@")
+emenu_path "$db" use "$sel"
+echo "$sel" | ${SHELL:-"/bin/sh"} &
