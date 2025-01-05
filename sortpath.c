@@ -8,50 +8,6 @@
 
 #include "slowdb/inc/slowdb.h"
 
-typedef struct {
-    uint32_t numuses;
-    uint64_t high, low;
-} sortkey;
-
-static int sortkey_cmp(sortkey a, sortkey b)
-{
-    if (a.numuses < b.numuses)
-        return 1;
-    if (a.numuses > b.numuses)
-        return -1;
-
-    if (a.high < b.high)
-        return -1;
-    if (a.high > b.high)
-        return  1;
-
-    if (a.low < b.low)
-        return -1;
-    if (a.low > b.low)
-        return  1;
-
-    return 0;
-}
-
-static sortkey sortkey_calc(const char * str)
-{
-    uint8_t by[16] = { 
-        0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0
-    };
-
-    size_t strl = strlen(str);
-    if (strl > 16)
-        strl = 16;
-    memcpy(by, str, strl);
-
-    sortkey res;
-    res.numuses = 0;
-    res.high = * (uint64_t*) &by[0];
-    res.low = * (uint64_t*) &by[8];
-    return res;
-}
-
 typedef struct node {
     char * path;
     struct node * next;
@@ -211,7 +167,7 @@ static node* find_exec(void)
 }
 
 typedef struct {
-    sortkey sort;
+    uint32_t uses;
     char * path;
 } ent;
 
@@ -225,7 +181,12 @@ static int sort__cmp(const void * ap, const void * bp)
     ent a = * (ent*) ap;
     ent b = * (ent*) bp;
 
-    return sortkey_cmp(a.sort, b.sort);
+    if (a.uses < b.uses)
+        return  1;
+    if (a.uses > b.uses)
+        return -1;
+
+    return strcmp(a.path, b.path);
 }
 
 static const char * dbpath = NULL;
@@ -270,8 +231,7 @@ static entli sort(node* l)
     {
         ent e;
         e.path = l->path;
-        e.sort = sortkey_calc(l->path);
-        e.sort.numuses = getnuses(db, l->path);
+        e.uses = getnuses(db, l->path);
 
         li.ents[i++] = e;
 
